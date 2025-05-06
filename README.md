@@ -48,6 +48,15 @@ accuracy = svm_test(W, b, X_test, y_test)
 ---
 
 ### 🔹 2. CVXOPT SVM (Dual Form + Kernelized)
+This figure illustrates the decision boundaries of SVMs trained with different kernel functions (`linear`, `polynomial`, `sigmoid`, and `RBF`) across various synthetic datasets. Each subfigure shows the classification accuracy.
+
+![SVM Kernel Decision Boundaries](./Images/kernalized_SVM.png)
+
+- Rows represent different data distributions.
+- Columns show decision boundaries from different kernels.
+- The RBF kernel adapts well to non-linear decision surfaces and performs consistently better on complex datasets.
+
+---
 
 **Files**: `cvxopt_svm.py`, `cvxopt_svm.ipynb`  
 Formulates the SVM as a **convex quadratic programming** problem and solves it using `cvxopt`.
@@ -66,6 +75,14 @@ acc = model.score(X_test, y_test)
 
 ### 🔹 3. Two-Layer Neural Network
 
+This visualization demonstrates the training dynamics of the two-layer neural network, including the convergence of training loss and validation accuracy over epochs.
+
+![Two-Layer Neural Network Performance](./Images/two_layer_net.png)
+
+- **Left**: Training loss decreases rapidly during early iterations, then gradually stabilizes.
+- **Right**: Accuracy approaches ~95% for both training and validation sets, indicating good generalization.
+
+---
 **Files**: `two_layer_net.py`, `solver.py`, `optim.py`, `two_layer_net.ipynb`  
 Implements a two-layer neural network with modular forward/backward passes and a training framework.
 
