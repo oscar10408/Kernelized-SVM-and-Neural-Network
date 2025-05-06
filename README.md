@@ -62,9 +62,36 @@ This figure illustrates the decision boundaries of SVMs trained with different k
 Formulates the SVM as a **convex quadratic programming** problem and solves it using `cvxopt`.
 
 ```python
-model = CVXOPTSVC(C=1.0, kernel='rbf', gamma=0.5)
-model.fit(X_train, y_train)
-acc = model.score(X_test, y_test)
+    def fit(self, X, y):
+        # Initialize and computing H. Note the 1. to force to float type
+        y = y * 2 - 1  # transform to [-1, 1]
+        self.classes_ = [-1, 1]
+        self.X_train = X.copy()
+        self.y_train = y.copy()
+
+        # Convert into cvxopt format
+        _P, _q, _G, _h, _A, _b = get_qp_params(X, y, self.C, self.kernel_params)
+        P = cvxopt_matrix(_P)
+        q = cvxopt_matrix(np.expand_dims(_q, 1))
+        G = cvxopt_matrix(_G)
+        h = cvxopt_matrix(_h)
+        A = cvxopt_matrix(_A)
+        b = cvxopt_matrix(_b)
+
+        # Run solver
+        cvxopt_solvers.options['show_progress'] = False
+        try:
+            sol = cvxopt_solvers.qp(P, q, G, h, A, b)
+        except ValueError:
+            # if fail to solve, try different solver
+            # default solver always fails on windows cvxopt build
+            sol = cvxopt_solvers.qp(P, q, G, h, A, b, kktsolver='ldl', options={'kktreg':1e-9})
+        self.alpha = np.array(sol['x']).squeeze(1)
+
+        self.support_ = np.where(self.alpha > 1e-4)
+        self.b = fit_bias(X, y, self.alpha, self.kernel_params)
+
+        return self
 ```
 
 ✅ Supports kernels: `'linear'`, `'rbf'`, `'poly'`, `'sigmoid'`  
@@ -87,12 +114,32 @@ This visualization demonstrates the training dynamics of the two-layer neural ne
 Implements a two-layer neural network with modular forward/backward passes and a training framework.
 
 ```python
-model = TwoLayerNet(input_dim=784, hidden_dim=100, num_classes=10)
-solver = Solver(model, data={
-    'X_train': X_train, 'y_train': y_train,
-    'X_val': X_val, 'y_val': y_val
-}, update_rule='sgd', optim_config={'learning_rate': 1e-3})
-solver.train()
+    def __init__(self, input_dim=28*28, hidden_dim=100,
+                 num_classes=10, weight_scale=1e-3):
+        """
+        Initialize a new network.
+        Inputs:
+        - input_dim: An integer giving the size of the input
+        - hidden_dim: An integer giving the size of the hidden layer
+        - num_classes: An integer giving the number of classes to classify
+        - weight_scale: Scalar giving the standard deviation for random
+          initialization of the weights.
+        """
+        self.params = {}
+        ############################################################################
+        # TODO: Initialize the weights and biases of the two-layer net. Weights    #
+        # should be initialized from a Gaussian centered at 0.0 with               #
+        # standard deviation equal to weight_scale, and biases should be           #
+        # initialized to zero. All weights and biases should be stored in the      #
+        # dictionary self.params. Use keys 'W1' and 'b1' for the weights and       #
+        # biases of the first fully-connected layer, and keys 'W2' and 'b2' for    #
+        # the weights and biases of the output affine layer.                       #
+        ############################################################################
+
+        self.params['W1'] = np.random.normal(0.0, weight_scale, (input_dim, hidden_dim))
+        self.params['W2'] = np.random.normal(0.0, weight_scale, (hidden_dim, num_classes))
+        self.params['b1'] = np.zeros((hidden_dim,))
+        self.params['b2'] = np.zeros((num_classes,))
 ```
 
 🧱 Architecture: fc → ReLU → fc → Softmax  
